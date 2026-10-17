@@ -1,0 +1,136 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Dontek Aquatek Pool Controller (Unofficial)",
+        "description": "Enter the serial number printed on the controller label (the long number under the QR code), or the device MAC address.",
+        "data": {
+          "serial": "Serial number or MAC",
+          "name": "Name"
+        }
+      }
+    },
+    "error": {
+      "invalid_serial": "That doesn't look like a valid serial number or MAC address.",
+      "cannot_connect": "Could not reach the controller through the Dontek cloud. Check the serial number and that the controller is online."
+    },
+    "abort": {
+      "already_configured": "This controller is already set up."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "water_temperature": {
+        "name": "Water temperature"
+      },
+      "pump_status": {
+        "name": "Pump mode status"
+      },
+      "pump_activity": {
+        "name": "Pump activity"
+      },
+      "running_speed": {
+        "name": "Running speed"
+      }
+    },
+    "select": {
+      "pump_mode": {
+        "name": "Pump mode"
+      },
+      "pump_speed_select": {
+        "name": "Pump speed"
+      },
+      "filter1_speed": {
+        "name": "Filter 1 speed"
+      },
+      "filter2_speed": {
+        "name": "Filter 2 speed"
+      },
+      "filter3_speed": {
+        "name": "Filter 3 speed"
+      },
+      "filter4_speed": {
+        "name": "Filter 4 speed"
+      },
+      "filter_pump_mode": {
+        "name": "Filter pump mode"
+      },
+      "heater_mode": {
+        "name": "Heater mode"
+      }
+    },
+    "number": {
+      "speed_1_pct": {
+        "name": "Speed 1 power"
+      },
+      "speed_2_pct": {
+        "name": "Speed 2 power"
+      },
+      "speed_3_pct": {
+        "name": "Speed 3 power"
+      },
+      "speed_4_pct": {
+        "name": "Speed 4 power"
+      },
+      "run_once_minutes": {
+        "name": "Run once minutes"
+      }
+    },
+    "switch": {
+      "filter1_enabled": {
+        "name": "Filter 1 enabled"
+      },
+      "filter2_enabled": {
+        "name": "Filter 2 enabled"
+      },
+      "filter3_enabled": {
+        "name": "Filter 3 enabled"
+      },
+      "filter4_enabled": {
+        "name": "Filter 4 enabled"
+      },
+      "run_til_heated": {
+        "name": "Run til heated"
+      },
+      "water_feature": {
+        "name": "Water feature"
+      }
+    },
+    "time": {
+      "filter1_from": {
+        "name": "Filter 1 start"
+      },
+      "filter1_to": {
+        "name": "Filter 1 end"
+      },
+      "filter2_from": {
+        "name": "Filter 2 start"
+      },
+      "filter2_to": {
+        "name": "Filter 2 end"
+      },
+      "filter3_from": {
+        "name": "Filter 3 start"
+      },
+      "filter3_to": {
+        "name": "Filter 3 end"
+      },
+      "filter4_from": {
+        "name": "Filter 4 start"
+      },
+      "filter4_to": {
+        "name": "Filter 4 end"
+      }
+    },
+    "button": {
+      "run_once": {
+        "name": "Run once"
+      }
+    },
+    "climate": {
+      "heater": {
+        "name": "Heater"
+      }
+    }
+  }
+}
