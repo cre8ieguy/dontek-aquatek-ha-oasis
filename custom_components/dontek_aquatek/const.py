@@ -152,6 +152,13 @@ REG_HEATER_RUN_TIL_HEATED = 65500
 # Live heater status: 1 while the controller is calling for heat.
 REG_HEATER_ACTIVE = 172
 
+# Pool / Spa mode on Oasis units with a pool-spa valve actuator (mapped live
+# 2026-10-18 by pressing Spa then Pool in the Oasis app): 0 = Pool, 1 = Spa.
+# Registers 168 and 169 mirror it as read-back status.
+REG_POOL_SPA_MODE = 65313
+POOL_SPA_TO_STR = {0: "Pool", 1: "Spa"}
+POOL_SPA_STR_TO_MODE = {v: k for k, v in POOL_SPA_TO_STR.items()}
+
 # Water Feature socket on/off (0/1). Often drives a valve/jets (e.g. spa jets).
 REG_WATER_FEATURE = 65345
 

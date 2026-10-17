@@ -1,4 +1,4 @@
-> **Private interim build with Oasis Smart support.** Based on [jbyoll/dontek-aquatek-ha](https://github.com/jbyoll/dontek-aquatek-ha) v0.7.0 plus the Oasis changes proposed in [issue #3](https://github.com/jbyoll/dontek-aquatek-ha/issues/3). Switch back to the upstream repository in HACS once they are merged.
+> **Private interim build with Oasis Smart support.** Based on [jbyoll/dontek-aquatek-ha](https://github.com/jbyoll/dontek-aquatek-ha) v0.7.0 plus the changes in [PR #6](https://github.com/jbyoll/dontek-aquatek-ha/pull/6). Switch back to the upstream repository in HACS once merged.
 
 <p align="center">
   <img src="assets/banner.png" alt="Dontek Aquatek for Home Assistant" width="100%">
@@ -49,6 +49,7 @@ same hardware with different labels.
 | 🏊 | **Filter 1–4 speed** | `select` — speed used by each schedule |
 | 🔥 | **Heater** | `climate` — Off / Heat, target temperature (0.5 °C steps), heating/idle *(disabled by default; enable it if you have a heater)* |
 | ♨️ | **Run til heated** | `switch` (config) — setting: heater switches off once the setpoint is reached instead of staying on *(disabled by default)* |
+| 🛁 | **Pool / Spa mode** | `select` — Pool / Spa valve on Oasis units (register 65313) *(disabled by default)* |
 | ⛲ | **Water feature** | `switch` — water feature socket on/off (e.g. spa jets / valve) *(disabled by default)* |
 
 > In **Auto** mode the pump follows its filter schedule, so the live **Running speed** can

@@ -60,6 +60,9 @@
       },
       "heater_mode": {
         "name": "Heater mode"
+      },
+      "pool_spa_mode": {
+        "name": "Pool / Spa mode"
       }
     },
     "number": {

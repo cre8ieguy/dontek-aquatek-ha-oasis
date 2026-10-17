@@ -13,9 +13,12 @@ from .const import (
     FP_STR_TO_MODE,
     HEATER_MODE_TO_STR,
     HEATER_STR_TO_MODE,
+    POOL_SPA_STR_TO_MODE,
+    POOL_SPA_TO_STR,
     MODE_TO_STR,
     REG_FILTER_PUMP_MODE,
     REG_HEATER_ON,
+    REG_POOL_SPA_MODE,
     REG_PUMP_MODE,
     REG_PUMP_SPEED,
     SPEED_COUNT,
@@ -38,6 +41,8 @@ async def async_setup_entry(
         entities.append(FilterTimeSpeedSelect(coordinator, ft, regs["speed"]))
     if REG_HEATER_ON in (coordinator.data or {}):
         entities.append(HeaterModeSelect(coordinator))
+    if REG_POOL_SPA_MODE in (coordinator.data or {}):
+        entities.append(PoolSpaModeSelect(coordinator))
     async_add_entities(entities)
 
 
@@ -162,3 +167,29 @@ class HeaterModeSelect(DontekEntity, SelectEntity):
         if value is None:
             return
         await self.coordinator.async_write_register(REG_HEATER_ON, value)
+
+
+class PoolSpaModeSelect(DontekEntity, SelectEntity):
+    """Pool / Spa mode (register 65313) on units with a pool-spa valve actuator.
+
+    Created disabled: units without the valve report the register too, and
+    switching it moves a physical actuator.
+    """
+
+    _attr_translation_key = "pool_spa_mode"
+    _attr_options = ["Pool", "Spa"]
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: DontekCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.mac}_pool_spa_mode"
+
+    @property
+    def current_option(self) -> str | None:
+        return POOL_SPA_TO_STR.get(self.reg(REG_POOL_SPA_MODE))
+
+    async def async_select_option(self, option: str) -> None:
+        value = POOL_SPA_STR_TO_MODE.get(option)
+        if value is None:
+            return
+        await self.coordinator.async_write_register(REG_POOL_SPA_MODE, value)
