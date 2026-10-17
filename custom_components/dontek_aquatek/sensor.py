@@ -13,8 +13,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     DOMAIN,
-    MODE_TO_STR,
     REG_PUMP_MODE,
+    REG_ROOF_TEMP,
+    pump_mode_str,
     REG_RUN_STATE,
     RUN_STATE,
     RUN_STATE_RUNNING,
@@ -35,6 +36,7 @@ async def async_setup_entry(
             PumpActivitySensor(coordinator),
             RunningSpeedSensor(coordinator),
         ]
+        + ([RoofTemperatureSensor(coordinator)] if REG_ROOF_TEMP in (coordinator.data or {}) else [])
     )
 
 
@@ -66,10 +68,7 @@ class PumpStatusSensor(DontekEntity, SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        mode = self.reg(REG_PUMP_MODE)
-        if mode is None:
-            return None
-        return MODE_TO_STR.get(mode, f"Unknown ({mode})")
+        return pump_mode_str(self.reg(REG_PUMP_MODE))
 
 
 class PumpActivitySensor(DontekEntity, SensorEntity):
@@ -114,3 +113,26 @@ class RunningSpeedSensor(DontekEntity, SensorEntity):
         if state != RUN_STATE_RUNNING or speed > 3:
             return None  # not running (or Oasis reports 0xFF) -> no meaningful speed
         return speed + 1  # low byte is 0-based
+
+
+class RoofTemperatureSensor(DontekEntity, SensorEntity):
+    """Possible roof / solar sensor temperature (register 64, whole degrees).
+
+    Seen on Oasis units only; created disabled until someone confirms it
+    against their app.
+    """
+
+    _attr_translation_key = "roof_temperature"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: DontekCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.mac}_roof_temp"
+
+    @property
+    def native_value(self) -> float | None:
+        raw = self.reg(REG_ROOF_TEMP)
+        return None if raw is None else float(raw)

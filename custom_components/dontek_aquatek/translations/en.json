@@ -31,6 +31,9 @@
       },
       "running_speed": {
         "name": "Running speed"
+      },
+      "roof_temperature": {
+        "name": "Roof temperature (unverified)"
       }
     },
     "select": {

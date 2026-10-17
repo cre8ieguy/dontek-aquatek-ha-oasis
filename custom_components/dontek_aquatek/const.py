@@ -17,6 +17,9 @@ REG_WATER_TEMP = 57545
 # temperature in half-degrees here instead (43 = 21.5 C). Mapped 2026-10-18
 # against the Oasis Smart app. Registers 55 and 57 mirror it.
 REG_WATER_TEMP_HALF = 79
+# Second temperature seen on Oasis units (12 overnight -> 20 mid-morning, whole
+# degrees). Probably the roof / solar sensor the Oasis app shows; unverified.
+REG_ROOF_TEMP = 64
 # Controller name as ASCII, two characters per register (e.g. "OASIS").
 REG_NAME_START = 65488
 REG_NAME_COUNT = 8
@@ -28,6 +31,25 @@ MODE_ON = 1025
 MODE_AUTO = 65535
 MODE_TO_STR = {MODE_OFF: "Off", MODE_ON: "On", MODE_AUTO: "Auto"}
 STR_TO_MODE = {v: k for k, v in MODE_TO_STR.items()}
+
+
+def pump_mode_str(value: int | None) -> str | None:
+    """Decode the pump mode register, tolerating other pump types.
+
+    Aquatek + Hayward VSP reports 0 / 1025 (0x0401) / 65535. Other setups have
+    been seen reporting 257 (0x0101) for On, so fall back to the low byte:
+    0 = Off, 1 = On, 0xFFFF = Auto.
+    """
+    if value is None:
+        return None
+    if value in MODE_TO_STR:
+        return MODE_TO_STR[value]
+    low = value & 0xFF
+    if low == 1:
+        return "On"
+    if low == 0:
+        return "Off"
+    return f"Unknown ({value})"
 
 # Filter Pump = the Socket 1 appliance relay (a separate pump the controller
 # switches on/off/auto), distinct from the Hayward variable-speed pump above.
