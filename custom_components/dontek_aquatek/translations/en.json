@@ -33,7 +33,7 @@
         "name": "Running speed"
       },
       "roof_temperature": {
-        "name": "Roof temperature (unverified)"
+        "name": "Roof temperature"
       }
     },
     "select": {
@@ -57,9 +57,6 @@
       },
       "filter_pump_mode": {
         "name": "Filter pump mode"
-      },
-      "heater_mode": {
-        "name": "Heater mode"
       },
       "pool_spa_mode": {
         "name": "Pool / Spa mode"
@@ -136,6 +133,11 @@
     "climate": {
       "heater": {
         "name": "Heater"
+      }
+    },
+    "binary_sensor": {
+      "solar_pump": {
+        "name": "Solar pump"
       }
     }
   }

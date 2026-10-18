@@ -11,18 +11,26 @@ DEFAULT_NAME = "Pool Pump"
 DEFAULT_SCAN_INTERVAL = 30  # seconds between full register reads
 
 # --- Register map (reverse engineered; all values are unsigned 16-bit) ---
-# Water temperature is fixed-point Q8.8: degrees C = raw / 256.
-REG_WATER_TEMP = 57545
-# Oasis (Oasis Smart app) controllers leave 57545 at 0 and report the water
-# temperature in half-degrees here instead (43 = 21.5 C). Mapped 2026-10-18
-# against the Oasis Smart app. Registers 55 and 57 mirror it.
+# Water temperature in half-degrees (56 = 28.0 C); registers 55 and 57 mirror
+# it. This is what the app shows on Aquatek (fw 1.17B1, checked 2026-10-18)
+# and Oasis units.
 REG_WATER_TEMP_HALF = 79
-# Second temperature seen on Oasis units (12 overnight -> 20 mid-morning, whole
-# degrees). Probably the roof / solar sensor the Oasis app shows; unverified.
-REG_ROOF_TEMP = 64
-# Controller name as ASCII, two characters per register (e.g. "OASIS").
-REG_NAME_START = 65488
-REG_NAME_COUNT = 8
+# Older mapping, fixed-point Q8.8 (degrees C = raw / 256). Reads 0 on the
+# units above; kept as a fallback for controllers without register 79.
+REG_WATER_TEMP = 57545
+
+
+def water_temp_c(regs: dict[int, int]) -> float | None:
+    """Water temperature in C from whichever register this controller fills."""
+    half = regs.get(REG_WATER_TEMP_HALF)
+    if half:
+        return half / 2
+    raw = regs.get(REG_WATER_TEMP)
+    if raw:
+        return round(raw / 256, 1)
+    if half is None and raw is None:
+        return None
+    return 0.0
 
 # Pump run mode.
 REG_PUMP_MODE = 65485
@@ -50,6 +58,7 @@ def pump_mode_str(value: int | None) -> str | None:
     if low == 0:
         return "Off"
     return f"Unknown ({value})"
+
 
 # Filter Pump = the Socket 1 appliance relay (a separate pump the controller
 # switches on/off/auto), distinct from the Hayward variable-speed pump above.
@@ -137,11 +146,11 @@ REG_CLOCK_MIN = 65300
 RUNONCE_DEFAULT_MIN = 15
 
 # --- Heater (mapped live 2026-10-06 by watching the app's writes) ---
-# Heater socket. Aquatek offers only On/Off (0/1); Oasis offers Off/On/Auto
-# (0/1/2) like the filter pump socket and shows "Heat Pump: Auto" in its app.
+# Heater socket. The Aquatek app offers only On/Off (0/1). Oasis units use
+# 0/1/2 = Off/On/Auto (the Oasis app shows "Heat Pump: Auto"); the climate
+# entity only offers Auto when the controller reports as Oasis.
 REG_HEATER_ON = 65348
-HEATER_MODE_TO_STR = {0: "Off", 1: "On", 2: "Auto"}
-HEATER_STR_TO_MODE = {v: k for k, v in HEATER_MODE_TO_STR.items()}
+HEATER_MODE_AUTO = 2
 # Setpoint in half-degrees: value = degrees C * 2 (76 = 38.0 C, 80 = 40.0 C).
 REG_HEATER_SETPOINT = 65447
 HEATER_MIN_TEMP = 10.0
@@ -152,15 +161,23 @@ REG_HEATER_RUN_TIL_HEATED = 65500
 # Live heater status: 1 while the controller is calling for heat.
 REG_HEATER_ACTIVE = 172
 
-# Pool / Spa mode on Oasis units with a pool-spa valve actuator (mapped live
-# 2026-10-18 by pressing Spa then Pool in the Oasis app): 0 = Pool, 1 = Spa.
-# Registers 168 and 169 mirror it as read-back status.
+# Water Feature socket on/off (0/1). Often drives a valve/jets (e.g. spa jets).
+REG_WATER_FEATURE = 65345
+
+# --- Oasis Smart units (mapped live 2026-10-18 against the Oasis app) ---
+# Controller name as ASCII, two characters per register ("OASIS" on Oasis
+# Smart units). Used to tell Oasis controllers apart from Aquatek ones.
+REG_NAME_START = 65488
+REG_NAME_COUNT = 8
+# Pool / Spa valve actuator: 0 = Pool, 1 = Spa (registers 168/169 mirror it).
 REG_POOL_SPA_MODE = 65313
 POOL_SPA_TO_STR = {0: "Pool", 1: "Spa"}
 POOL_SPA_STR_TO_MODE = {v: k for k, v in POOL_SPA_TO_STR.items()}
-
-# Water Feature socket on/off (0/1). Often drives a valve/jets (e.g. spa jets).
-REG_WATER_FEATURE = 65345
+# Roof / solar collector temperature in half-degrees (113 = 56.5 C); registers
+# 54 and 56 mirror it. Reads 0 on units without a roof sensor.
+REG_ROOF_TEMP_HALF = 80
+# Solar pump running flag (sits next to 160 filter / 172 heater).
+REG_SOLAR_PUMP_ACTIVE = 162
 
 
 def decode_name(regs: dict[int, int]) -> str:
@@ -176,12 +193,6 @@ def decode_name(regs: dict[int, int]) -> str:
     return "".join(chars).strip()
 
 
-def water_temp_c(regs: dict[int, int]) -> float | None:
-    """Water temperature in C from whichever register this model uses."""
-    raw = regs.get(REG_WATER_TEMP)
-    if raw:
-        return round(raw / 256, 1)
-    half = regs.get(REG_WATER_TEMP_HALF)
-    if half:
-        return half / 2
-    return None if raw is None and half is None else 0.0
+def is_oasis(regs: dict[int, int]) -> bool:
+    """True when the controller reports as an Oasis Smart unit."""
+    return decode_name(regs).upper().startswith("OASIS")

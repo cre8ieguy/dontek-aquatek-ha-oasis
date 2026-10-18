@@ -18,9 +18,11 @@ from .const import (
     DOMAIN,
     HEATER_MAX_TEMP,
     HEATER_MIN_TEMP,
+    HEATER_MODE_AUTO,
     REG_HEATER_ACTIVE,
     REG_HEATER_ON,
     REG_HEATER_SETPOINT,
+    is_oasis,
     water_temp_c,
 )
 from .coordinator import DontekCoordinator
@@ -40,14 +42,17 @@ async def async_setup_entry(
 
 
 class HeaterClimate(DontekEntity, ClimateEntity):
-    """Heater on/off (65348) with setpoint in half-degrees (65447)."""
+    """Heater on/off (65348) with setpoint in half-degrees (65447).
+
+    Oasis units also have an Auto mode (register value 2), offered only when
+    the controller reports as Oasis.
+    """
 
     _attr_translation_key = "heater"
     # off until the owner enables it: units without a heater report the same
     # registers, and switching the heater socket also changes the pump speed
     _attr_entity_registry_enabled_default = False
-    # Oasis controllers add an Auto mode (register value 2)
-    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
     # TURN_ON/TURN_OFF only exist from HA 2024.2; hacs.json still allows 2024.1
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
@@ -63,13 +68,15 @@ class HeaterClimate(DontekEntity, ClimateEntity):
     def __init__(self, coordinator: DontekCoordinator) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.mac}_heater"
+        if is_oasis(coordinator.data or {}):
+            self._attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
 
     @property
     def hvac_mode(self) -> HVACMode | None:
         on = self.reg(REG_HEATER_ON)
         if on is None:
             return None
-        if on == 2:
+        if on == HEATER_MODE_AUTO and HVACMode.AUTO in self._attr_hvac_modes:
             return HVACMode.AUTO
         return HVACMode.HEAT if on else HVACMode.OFF
 
@@ -107,7 +114,9 @@ class HeaterClimate(DontekEntity, ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode not in self._attr_hvac_modes:
             return
-        value = {HVACMode.OFF: 0, HVACMode.HEAT: 1, HVACMode.AUTO: 2}[hvac_mode]
+        value = {HVACMode.OFF: 0, HVACMode.HEAT: 1, HVACMode.AUTO: HEATER_MODE_AUTO}[
+            hvac_mode
+        ]
         await self.coordinator.async_write_register(REG_HEATER_ON, value)
 
     async def async_turn_on(self) -> None:

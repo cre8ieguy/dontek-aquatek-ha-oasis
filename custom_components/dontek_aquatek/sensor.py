@@ -14,11 +14,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     DOMAIN,
     REG_PUMP_MODE,
-    REG_ROOF_TEMP,
-    pump_mode_str,
+    REG_ROOF_TEMP_HALF,
     REG_RUN_STATE,
     RUN_STATE,
     RUN_STATE_RUNNING,
+    SPEED_COUNT,
+    is_oasis,
+    pump_mode_str,
     water_temp_c,
 )
 from .coordinator import DontekCoordinator
@@ -29,19 +31,19 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator: DontekCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities(
-        [
-            WaterTemperatureSensor(coordinator),
-            PumpStatusSensor(coordinator),
-            PumpActivitySensor(coordinator),
-            RunningSpeedSensor(coordinator),
-        ]
-        + ([RoofTemperatureSensor(coordinator)] if REG_ROOF_TEMP in (coordinator.data or {}) else [])
-    )
+    entities: list[DontekEntity] = [
+        WaterTemperatureSensor(coordinator),
+        PumpStatusSensor(coordinator),
+        PumpActivitySensor(coordinator),
+        RunningSpeedSensor(coordinator),
+    ]
+    if is_oasis(coordinator.data or {}):
+        entities.append(RoofTemperatureSensor(coordinator))
+    async_add_entities(entities)
 
 
 class WaterTemperatureSensor(DontekEntity, SensorEntity):
-    """Pool water temperature (57545 Q8.8, or 79 in half-degrees on Oasis)."""
+    """Pool water temperature (register 79 in half-degrees, or 57545 Q8.8)."""
 
     _attr_translation_key = "water_temperature"
     _attr_device_class = SensorDeviceClass.TEMPERATURE
@@ -109,17 +111,17 @@ class RunningSpeedSensor(DontekEntity, SensorEntity):
         if word is None:
             return None
         state = (word >> 8) & 0xFF
-        speed = word & 0xFF
-        if state != RUN_STATE_RUNNING or speed > 3:
-            return None  # not running (or Oasis reports 0xFF) -> no meaningful speed
-        return speed + 1  # low byte is 0-based
+        speed = word & 0xFF  # 0-based speed index
+        if state != RUN_STATE_RUNNING or speed >= SPEED_COUNT:
+            # not running, or no index in the low byte (Oasis reports 0xFF)
+            return None
+        return speed + 1
 
 
 class RoofTemperatureSensor(DontekEntity, SensorEntity):
-    """Possible roof / solar sensor temperature (register 64, whole degrees).
+    """Roof / solar collector temperature on Oasis units (register 80, half-degrees).
 
-    Seen on Oasis units only; created disabled until someone confirms it
-    against their app.
+    Created disabled: Oasis units without a roof sensor report 0 here.
     """
 
     _attr_translation_key = "roof_temperature"
@@ -134,5 +136,7 @@ class RoofTemperatureSensor(DontekEntity, SensorEntity):
 
     @property
     def native_value(self) -> float | None:
-        raw = self.reg(REG_ROOF_TEMP)
-        return None if raw is None else float(raw)
+        raw = self.reg(REG_ROOF_TEMP_HALF)
+        if not raw:
+            return None  # 0 = no roof sensor fitted
+        return raw / 2
